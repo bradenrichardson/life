@@ -33,10 +33,16 @@ Unsure what functionality I was after here, but there doesn't seem to be a need 
 
 # Infrastructure design
 
+Design document: https://drive.google.com/file/d/1cpWIr5uYrzPKb2ywaftCqYkVY4dCIocc/view?usp=sharing
+
 |Resource   |Size   |Monthly Price   |
-|API Gateway|NA|---|
-|Webhook Lambda| | |
-|Request Lambda| | |
-|MySQL| | |
-|Quicksight| | |
-|Elastic Beanstalk| | | 
+|---|---|---|
+|API Gateway   |NA   |$1   |
+|Webhook Lambda   |NA   |$0   |
+|Request Lambda   |NA   |$0   |
+|MySQL Instance   |db.t3.micro   |$16   |
+|Quicksight   |Basic   |$5   |
+|Elastic Beanstalk   |   |   |
+|VPC| NA| ?|
+|NAT Instance| t2.micro| $10|
+|Codepipeline |NA |$0|
