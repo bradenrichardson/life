@@ -1,0 +1,86 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Deploys the infrastructure for Life Dashboard
+
+Resources:
+
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      Policies:
+      - PolicyName: root
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:*
+            Resource: arn:aws:logs:*:*:*
+
+  UpdateDBFromWebhook:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              transaction_id = event.get('data').get('relationships').get('transaction').get('data').get('id')
+              transaction = retrieve_transaction(transaction_id)
+            update_database(transaction)
+      Description: Receives api requests via webhook
+      FunctionName: UpdateWebhook
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.8
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
+  
+  UpdateDBFromRequest:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              ## filler code
+              pass
+      Description: Makes a GET call to a public API
+      FunctionName: UpdateRequest
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.8
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
+
+  # API Gateway resources failing due to no routes  
+  # LifeGateway:
+  #   Type: AWS::ApiGatewayV2::Api
+  #   Properties:
+  #     Name: LifeGateway
+  #     ProtocolType: HTTP
+  
+  # LifeGatewayStage:
+  #   Type: AWS::ApiGatewayV2::Stage
+  #   Properties:
+  #     ApiId: !Ref LifeGateway
+  #     StageName: Webhook
+
+  # LifeGatewayRoute:
+  #   Type: AWS::ApiGatewayV2::Route
+  #   Properties:
+  #     ApiId: !Ref LifeGateway
+  #     RouteKey: $default
+
+  # LifeGatewayDeployment:
+  #   Type: AWS::ApiGatewayV2::Deployment
+  #   Properties:
+  #     ApiId: !Ref LifeGateway
+  #     StageName: !Ref LifeGatewayStage
+
+
+    

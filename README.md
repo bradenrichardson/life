@@ -46,3 +46,11 @@ Design document: https://drive.google.com/file/d/1cpWIr5uYrzPKb2ywaftCqYkVY4dCIo
 |VPC| NA| ?|
 |NAT Instance| t2.micro| $10|
 |Codepipeline |NA |$0|
+
+
+# Infrastructure as Code
+
+- All infrastructure to be provisioned through Cloudformation
+- Codepipeline source to be found in a separate repository (life-app)
+- Codepipeline infra still setup with CF script from life-infra
+
