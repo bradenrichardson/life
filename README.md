@@ -12,6 +12,7 @@ The following data sources are included in the database design:
 https://app.sqldbm.com/MySQL/Edit/p152946/#
 
 
+
 The following have not been included in the database design:
 
 - Google Maps
@@ -28,3 +29,14 @@ Unsure what functionality I was after here, but there doesn't seem to be a need 
 
 ## Notes
 - Further research into the specifics of table construction is required, including how to structure the database with multiple tables, and the utilisation of Primary Keys, Alternative Keys and Foreign Keys
+
+
+# Infrastructure design
+
+|Resource   |Size   |Monthly Price   |
+|API Gateway|NA|---|
+|Webhook Lambda| | |
+|Request Lambda| | |
+|MySQL| | |
+|Quicksight| | |
+|Elastic Beanstalk| | | 
