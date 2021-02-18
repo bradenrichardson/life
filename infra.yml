@@ -5,22 +5,52 @@ Parameters:
   GatewayName:
     Type: String
     Default: WebhookGateway
+
   GatewayStageName:
     Type: String
     Default: dev
+
   GatewayHTTPMethod:
     Type: String
     Default: POST
+
   WebhookLambdaFunctionName:
     Type: String
     Default: webhook
+
   RequestLambdaFunctionName:
     Type: String
     Default: request
+
+  DBInstanceID:
+    Type: String
+    Default: lifedbinstance
+
+  DBName:
+    Type: String
+    Default: lifedb
+
+  DBInstanceClass:
+    Type: String
+    Default: db.t2.micro
+
+  DBAllocatedStorage:
+    Type: Number
+    Default: '20'
+
+  DBUsername:
+    NoEcho: 'true'
+    Type: String
+    Default: admin
+
+  DBPassword:
+    NoEcho: 'true'
+    Type: String
+    Default: password
+  
   
 
 Resources:
-  
   ## IAM Role
   WebhookLambdaRole:
     Type: AWS::IAM::Role
@@ -110,7 +140,7 @@ Resources:
       FunctionName: !Ref WebhookLambdaFunctionName
       Handler: index.handler
       Role: !GetAtt WebhookLambdaRole.Arn
-      Runtime: python3.8
+      Runtime: python3.7
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
   
   RequestLambdaFunction:
@@ -130,7 +160,7 @@ Resources:
       FunctionName: !Ref RequestLambdaFunctionName
       Handler: index.handler
       Role: !GetAtt RequestLambdaRole.Arn
-      Runtime: python3.8
+      Runtime: python3.7
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
 
   # API Gateways  
@@ -164,6 +194,64 @@ Resources:
     Properties:
       RestApiId: !Ref WebhookGateway
       StageName: !Ref GatewayStageName
+
+  # Networking
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+  
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  
+  Subnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.1.0/24
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-2a
+  
+  Subnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.2.0/24
+      VpcId: !Ref VPC
+      AvailabilityZone: ap-southeast-2b
+  
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      SubnetIds:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      DBSubnetGroupDescription: Subnet group for MySQL instance
+  
+  ## TODO: Security Groups
+  ## TODO: Route Table
+  ## TODO: NAT Instance
+  ## TODO: Public/Private subnets (connect one subnet to the IG)
+
+
+  # Database
+  LifeDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Ref DBInstanceID
+      DBName: !Ref DBName
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref DBAllocatedStorage
+      Engine: MySQL
+      EngineVersion: 8.0.16
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
+  
 
 
 
