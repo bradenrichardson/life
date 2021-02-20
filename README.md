@@ -54,3 +54,37 @@ Design document: https://drive.google.com/file/d/1cpWIr5uYrzPKb2ywaftCqYkVY4dCIo
 - Codepipeline source to be found in a separate repository (life-app)
 - Codepipeline infra still setup with CF script from life-infra
 
+
+# Features
+- Provide monthly summaries (similar to UP) for any metric/dataset
+- Display a web page with a default template
+- Ability to create and customize templates
+- Ability to be provisioned for multiple users
+    - What infrastructure is shared?
+    - How will sensitive data like API keys be handled?
+    - Would this need to be user friendly or could they deploy their own cf script?
+    - What about both? Free tier with open source code, you just have to use your own aws account etc
+    - And then a paid tier for a managed service with a margin on top
+    - You would need a design in which it could cater to 1 user or many without additional modifications
+    - A module design needs to be considered, with loosely coupled architecture. Think SNS or SQS messages in between services with proper authentication and secrets management throughout the entire process
+
+
+# Roadmap
+
+0.1 - All infrastructure provisioned and connected, but not configured to perform a specific task yet
+
+0.2 - Database configured and lambdas able to write to db
+
+0.3 - Lambdas configured to write to database
+
+0.4 - Amazon quicksight configured with database as source
+
+0.5 - Codepipeline configured
+
+0.6 - Basic web app deploying with custom domain name etc
+
+0.7 - Web app displays templates from Quicksight
+
+0.8 - UI/UX strategy implemented
+
+0.9 - Security and authorization audit

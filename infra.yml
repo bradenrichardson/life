@@ -48,17 +48,17 @@ Parameters:
     Type: String
     Default: password
   
-  UpAPIKey:
-    NoEcho: 'true'
-    Type: String
+  # UpAPIKey:
+  #   NoEcho: 'true'
+  #   Type: String
   
-  SpotifyAPIKey:
-    NoEcho: 'true'
-    Type: String
+  # SpotifyAPIKey:
+  #   NoEcho: 'true'
+  #   Type: String
 
-  TrelloAPIKey:
-    NoEcho: 'true'
-    Type: String
+  # TrelloAPIKey:
+  #   NoEcho: 'true'
+  #   Type: String
   
 
 Resources:
