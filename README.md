@@ -67,6 +67,9 @@ Design document: https://drive.google.com/file/d/1cpWIr5uYrzPKb2ywaftCqYkVY4dCIo
     - And then a paid tier for a managed service with a margin on top
     - You would need a design in which it could cater to 1 user or many without additional modifications
     - A module design needs to be considered, with loosely coupled architecture. Think SNS or SQS messages in between services with proper authentication and secrets management throughout the entire process
+- Deploy to different regions
+    - Both centralized deployment (IE Power User)
+    - And client/server deployment (IE Managed User)
 
 
 # Roadmap

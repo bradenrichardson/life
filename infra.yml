@@ -62,7 +62,7 @@ Parameters:
   
 
 Resources:
-  ## IAM Role
+  ## IAM Roles
   WebhookLambdaRole:
     Type: AWS::IAM::Role
     Properties:
@@ -84,9 +84,14 @@ Resources:
             - logs:CreateLogGroup
             - logs:CreateLogStream
             - logs:PutLogEvents
+            - ec2:DescribeNetworkInterfaces
+            - ec2:CreateNetworkInterface
+            - ec2:DeleteNetworkInterface
+            - ec2:DescribeInstances
+            - ec2:AttachNetworkInterface
             Effect: Allow
             Resource:
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${WebhookLambdaFunctionName}:*
+              - '*' 
 
   RequestLambdaRole:
     Type: AWS::IAM::Role
@@ -109,11 +114,15 @@ Resources:
             - logs:CreateLogGroup
             - logs:CreateLogStream
             - logs:PutLogEvents
+            - ec2:DescribeNetworkInterfaces
+            - ec2:CreateNetworkInterface
+            - ec2:DeleteNetworkInterface
+            - ec2:DescribeInstances
+            - ec2:AttachNetworkInterface
             Effect: Allow
             Resource:
-              - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${RequestLambdaFunctionName}:*
-
-  ## Log Group
+              - '*'
+  ## Log Groups
   WebhookLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -126,7 +135,7 @@ Resources:
       LogGroupName: !Sub /aws/lambda/${RequestLambdaFunctionName}
       RetentionInDays: 90
 
-  ## Lambda
+  ## Lambdas
   WebhookApiGatewayInvoke:
     Type: AWS::Lambda::Permission
     Properties:
@@ -153,6 +162,9 @@ Resources:
       Role: !GetAtt WebhookLambdaRole.Arn
       Runtime: python3.7
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
+      VpcConfig:
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+        SubnetIds: [!Ref Subnet1, !Ref Subnet2] 
   
   RequestLambdaFunction:
     Type: AWS::Lambda::Function
@@ -173,6 +185,9 @@ Resources:
       Role: !GetAtt RequestLambdaRole.Arn
       Runtime: python3.7
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
+      VpcConfig:
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+        SubnetIds: [!Ref Subnet1, !Ref Subnet2] 
 
   # API Gateways  
   WebhookGateway:
@@ -235,6 +250,12 @@ Resources:
       VpcId: !Ref VPC
       AvailabilityZone: ap-southeast-2b
   
+  Subnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock: 10.0.3.0/24
+      VpcId: !Ref VPC
+  
   DBSubnetGroup:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -243,7 +264,38 @@ Resources:
         - !Ref Subnet2
       DBSubnetGroupDescription: Subnet group for MySQL instance
   
-  ## TODO: Security Groups
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Ingress/Egress rules for the lambdas
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        CidrIp: 0.0.0.0/0
+        ToPort: 80
+        FromPort: 80
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        CidrIp: 0.0.0.0/0
+        ToPort: 80
+        FromPort: 80
+
+  LambdaRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+  
+  LambdaNATRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref LambdaRouteTable
+      InstanceId: !Ref NATInstance
+      DestinationCidrBlock: 0.0.0.0/0
+
+
+  
+
+  
   ## TODO: Route Table
   ## TODO: NAT Instance
   ## TODO: Public/Private subnets (connect one subnet to the IG)
@@ -263,7 +315,92 @@ Resources:
       MasterUserPassword: !Ref DBPassword
       DBSubnetGroupName: !Ref DBSubnetGroup
   
+  
+  ## NAT
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref NATInstance
+  
 
+
+  NatSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VPC
+      GroupDescription: Ingress/Egress rules for the NAT instance
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        CidrIp: 10.0.0.0/16
+        FromPort: 80
+        ToPort: 80
+      - IpProtocol: tcp
+        CidrIp: 10.0.0.0/16
+        FromPort: 443
+        ToPort: 443
+      - IpProtocol: udp
+        CidrIp: 0.0.0.0/0
+        FromPort: 123
+        ToPort: 123
+      SecurityGroupEgress:
+      - IpProtocol: udp
+        FromPort: 123
+        ToPort: 123
+        CidrIp: 10.0.0.0/16
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 10.0.0.0/16
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 10.0.0.0/16
+
+  NATIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: 'ec2.amazonaws.com'
+          Action: 'sts:AssumeRole'
+      Policies:
+      - PolicyName: ec2
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: Stmt1425023276000
+            Effect: Allow
+            Action:
+            - 'ec2:AssociateAddress'
+            - 'ec2:ModifyInstanceAttribute'
+            - 'ec2:CreateRoute'
+            - 'ec2:ReplaceRoute'
+            Resource:
+            - '*'
+      - PolicyName: logs
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'logs:CreateLogGroup'
+            - 'logs:CreateLogStream'
+            - 'logs:PutLogEvents'
+            - 'logs:DescribeLogStreams'
+            Resource: !GetAtt RequestLogGroup.Arn
+  
+  NATInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-002519e717bb4797a
+      InstanceType: t2.small
+      SecurityGroupIds: [!Ref NatSecurityGroup]
+      SubnetId: !Ref Subnet3
+
+  
 
 
 

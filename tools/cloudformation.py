@@ -7,6 +7,11 @@ parser.add_argument('--create', type=bool)
 parser.add_argument('--delete', type=bool)
 args = parser.parse_args()
 
+## NOTE:
+## This requires the following tools installed and configured:
+## boto3 python module
+## AWS CLI v2 with correct user/account
+
 cf_client = boto3.client('cloudformation')
 
 def create_stack():
