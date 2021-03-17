@@ -18,9 +18,11 @@ def create_stack():
     cf_template = open('infra.yml').read()
     cf_client.create_stack(StackName=args.stack_name, TemplateBody=cf_template, Capabilities=[
         'CAPABILITY_IAM',  'CAPABILITY_NAMED_IAM'])
+    print('Creating stack: {}'.format(args.stack_name))
 
 def delete_stack():
     cf_client.delete_stack(StackName=args.stack_name)
+    print('Deleting stack: {}'.format(args.stack_name))
 
 if __name__ == '__main__':
     if args.create:

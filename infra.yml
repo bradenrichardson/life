@@ -164,7 +164,7 @@ Resources:
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
-        SubnetIds: [!Ref Subnet1, !Ref Subnet2] 
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB] 
   
   RequestLambdaFunction:
     Type: AWS::Lambda::Function
@@ -187,7 +187,7 @@ Resources:
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
-        SubnetIds: [!Ref Subnet1, !Ref Subnet2] 
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB] 
 
   # API Gateways  
   WebhookGateway:
@@ -224,73 +224,156 @@ Resources:
   # Networking
   InternetGateway:
     Type: AWS::EC2::InternetGateway
+    DependsOn: LifeDashboardVPC
   
-  VPC:
+  LifeDashboardVPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      CidrBlock: 10.1.0.0/16
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref "AWS::StackName", "-VPC" ]]
   
   VPCGatewayAttachment:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
       InternetGatewayId: !Ref InternetGateway
-      VpcId: !Ref VPC
+      VpcId: !Ref LifeDashboardVPC
   
-  Subnet1:
+  PrivateSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
-      CidrBlock: 10.0.1.0/24
-      VpcId: !Ref VPC
-      AvailabilityZone: ap-southeast-2a
+      CidrBlock: 10.1.50.0/24
+      VpcId: !Ref LifeDashboardVPC
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-PrivateA
   
-  Subnet2:
+  PrivateSubnetB:
     Type: AWS::EC2::Subnet
     Properties:
-      CidrBlock: 10.0.2.0/24
-      VpcId: !Ref VPC
-      AvailabilityZone: ap-southeast-2b
+      CidrBlock: 10.1.60.0/24
+      VpcId: !Ref LifeDashboardVPC
+      AvailabilityZone: !Select [ 1, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-PrivateB
   
-  Subnet3:
+  PublicSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
-      CidrBlock: 10.0.3.0/24
-      VpcId: !Ref VPC
+      CidrBlock: 10.1.10.0/24
+      VpcId: !Ref LifeDashboardVPC
+      AvailabilityZone: !Select [ 0, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-PublicA
   
-  DBSubnetGroup:
-    Type: AWS::RDS::DBSubnetGroup
+  PublicSubnetB:
+    Type: AWS::EC2::Subnet
     Properties:
-      SubnetIds:
-        - !Ref Subnet1
-        - !Ref Subnet2
-      DBSubnetGroupDescription: Subnet group for MySQL instance
+      CidrBlock: 10.1.20.0/24
+      VpcId: !Ref LifeDashboardVPC
+      AvailabilityZone: !Select [ 1, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-PublicB
+
+
+  
+  EIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: LifeDashboardVPC
+  
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref LifeDashboardVPC
+      Tags:
+      - Key: Name
+        Value: Public
+  
+  PublicRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/16
+      GatewayId: !Ref InternetGateway
+  
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref LifeDashboardVPC
+      Tags:
+      - Key: Name
+        Value: Private
+  
+  PrivateRoute1:
+    Type: AWS::EC2::Route
+    DependsOn: PrivateRouteTable
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NATGateway
+
+  NATGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt EIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+      - Key: Name
+        Value: !Sub NAT-${AWS::StackName}
+  
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+  
+  PublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetB
+      RouteTableId: !Ref PublicRouteTable
+  
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: PrivateRouteTable
+    Properties:
+      SubnetId: !Ref PrivateSubnetA
+      RouteTableId: !Ref PrivateRouteTable
+  
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetB
+      RouteTableId: !Ref PrivateRouteTable
+  
+  
+      
+  
+
   
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      VpcId: !Ref VPC
+      VpcId: !Ref LifeDashboardVPC
       GroupDescription: Ingress/Egress rules for the lambdas
       SecurityGroupIngress:
-      - IpProtocol: tcp
+      - IpProtocol: -1
         CidrIp: 0.0.0.0/0
-        ToPort: 80
-        FromPort: 80
+        ToPort: -1
+        FromPort: -1
       SecurityGroupEgress:
-      - IpProtocol: tcp
+      - IpProtocol: -1
         CidrIp: 0.0.0.0/0
-        ToPort: 80
-        FromPort: 80
-
-  LambdaRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-  
-  LambdaNATRoute:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref LambdaRouteTable
-      InstanceId: !Ref NATInstance
-      DestinationCidrBlock: 0.0.0.0/0
+        ToPort: -1
+        FromPort: -1
 
 
   
@@ -302,104 +385,26 @@ Resources:
 
 
   # Database
-  LifeDatabase:
-    Type: AWS::RDS::DBInstance
-    Properties:
-      DBInstanceIdentifier: !Ref DBInstanceID
-      DBName: !Ref DBName
-      DBInstanceClass: !Ref DBInstanceClass
-      AllocatedStorage: !Ref DBAllocatedStorage
-      Engine: MySQL
-      EngineVersion: 8.0.16
-      MasterUsername: !Ref DBUsername
-      MasterUserPassword: !Ref DBPassword
-      DBSubnetGroupName: !Ref DBSubnetGroup
+  # LifeDatabase:
+  #   Type: AWS::RDS::DBInstance
+  #   Properties:
+  #     DBInstanceIdentifier: !Ref DBInstanceID
+  #     DBName: !Ref DBName
+  #     DBInstanceClass: !Ref DBInstanceClass
+  #     AllocatedStorage: !Ref DBAllocatedStorage
+  #     Engine: MySQL
+  #     EngineVersion: 8.0.16
+  #     MasterUsername: !Ref DBUsername
+  #     MasterUserPassword: !Ref DBPassword
+  #     DBSubnetGroupName: !Ref DBSubnetGroup
+    # DBSubnetGroup:
+  #   Type: AWS::RDS::DBSubnetGroup
+  #   Properties:
+  #     SubnetIds:
+  #       - !Ref Subnet1
+  #       - !Ref Subnet2
+  #     DBSubnetGroupDescription: Subnet group for MySQL instance
   
-  
-  ## NAT
-  EIP:
-    Type: AWS::EC2::EIP
-    Properties:
-      InstanceId: !Ref NATInstance
-  
-
-
-  NatSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      VpcId: !Ref VPC
-      GroupDescription: Ingress/Egress rules for the NAT instance
-      SecurityGroupIngress:
-      - IpProtocol: tcp
-        CidrIp: 10.0.0.0/16
-        FromPort: 80
-        ToPort: 80
-      - IpProtocol: tcp
-        CidrIp: 10.0.0.0/16
-        FromPort: 443
-        ToPort: 443
-      - IpProtocol: udp
-        CidrIp: 0.0.0.0/0
-        FromPort: 123
-        ToPort: 123
-      SecurityGroupEgress:
-      - IpProtocol: udp
-        FromPort: 123
-        ToPort: 123
-        CidrIp: 10.0.0.0/16
-      - IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-        CidrIp: 10.0.0.0/16
-      - IpProtocol: tcp
-        FromPort: 443
-        ToPort: 443
-        CidrIp: 10.0.0.0/16
-
-  NATIAMRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: 'ec2.amazonaws.com'
-          Action: 'sts:AssumeRole'
-      Policies:
-      - PolicyName: ec2
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Sid: Stmt1425023276000
-            Effect: Allow
-            Action:
-            - 'ec2:AssociateAddress'
-            - 'ec2:ModifyInstanceAttribute'
-            - 'ec2:CreateRoute'
-            - 'ec2:ReplaceRoute'
-            Resource:
-            - '*'
-      - PolicyName: logs
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Effect: Allow
-            Action:
-            - 'logs:CreateLogGroup'
-            - 'logs:CreateLogStream'
-            - 'logs:PutLogEvents'
-            - 'logs:DescribeLogStreams'
-            Resource: !GetAtt RequestLogGroup.Arn
-  
-  NATInstance:
-    Type: AWS::EC2::Instance
-    Properties:
-      ImageId: ami-002519e717bb4797a
-      InstanceType: t2.small
-      SecurityGroupIds: [!Ref NatSecurityGroup]
-      SubnetId: !Ref Subnet3
-
   
 
 
