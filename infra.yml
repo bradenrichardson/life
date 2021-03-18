@@ -161,7 +161,7 @@ Resources:
       Handler: index.handler
       Role: !GetAtt WebhookLambdaRole.Arn
       Runtime: python3.7
-      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1, arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB] 
@@ -184,7 +184,7 @@ Resources:
       Handler: index.handler
       Role: !GetAtt RequestLambdaRole.Arn
       Runtime: python3.7
-      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1, arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB] 
@@ -281,8 +281,6 @@ Resources:
       Tags:
       - Key: Name
         Value: !Sub ${AWS::StackName}-PublicB
-
-
   
   EIP:
     Type: AWS::EC2::EIP
@@ -354,11 +352,6 @@ Resources:
       SubnetId: !Ref PrivateSubnetB
       RouteTableId: !Ref PrivateRouteTable
   
-  
-      
-  
-
-  
   LambdaSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -375,35 +368,28 @@ Resources:
         ToPort: -1
         FromPort: -1
 
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      SubnetIds:
+        - !Ref PrivateSubnetA
+        - !Ref PrivateSubnetB
+      DBSubnetGroupDescription: Subnet group for MySQL instance
 
-  
+  LifeDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Ref DBInstanceID
+      DBName: !Ref DBName
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: !Ref DBAllocatedStorage
+      Engine: MySQL
+      EngineVersion: 8.0.16
+      MasterUsername: !Ref DBUsername
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSubnetGroup
 
-  
-  ## TODO: Route Table
-  ## TODO: NAT Instance
-  ## TODO: Public/Private subnets (connect one subnet to the IG)
-
-
-  # Database
-  # LifeDatabase:
-  #   Type: AWS::RDS::DBInstance
-  #   Properties:
-  #     DBInstanceIdentifier: !Ref DBInstanceID
-  #     DBName: !Ref DBName
-  #     DBInstanceClass: !Ref DBInstanceClass
-  #     AllocatedStorage: !Ref DBAllocatedStorage
-  #     Engine: MySQL
-  #     EngineVersion: 8.0.16
-  #     MasterUsername: !Ref DBUsername
-  #     MasterUserPassword: !Ref DBPassword
-  #     DBSubnetGroupName: !Ref DBSubnetGroup
-    # DBSubnetGroup:
-  #   Type: AWS::RDS::DBSubnetGroup
-  #   Properties:
-  #     SubnetIds:
-  #       - !Ref Subnet1
-  #       - !Ref Subnet2
-  #     DBSubnetGroupDescription: Subnet group for MySQL instance
+    
   
   
 
