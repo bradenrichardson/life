@@ -14,14 +14,6 @@ Parameters:
     Type: String
     Default: POST
 
-  WebhookLambdaFunctionName:
-    Type: String
-    Default: webhook
-
-  RequestLambdaFunctionName:
-    Type: String
-    Default: request
-
   DBInstanceID:
     Type: String
     Default: lifedbinstance
@@ -47,18 +39,6 @@ Parameters:
     NoEcho: 'true'
     Type: String
     Default: password
-  
-  # UpAPIKey:
-  #   NoEcho: 'true'
-  #   Type: String
-  
-  # SpotifyAPIKey:
-  #   NoEcho: 'true'
-  #   Type: String
-
-  # TrelloAPIKey:
-  #   NoEcho: 'true'
-  #   Type: String
   
 
 Resources:
@@ -157,15 +137,72 @@ Resources:
               'statusCode': 200
             }
       Description: Receives POST request via webhook
-      FunctionName: !Ref WebhookLambdaFunctionName
+      FunctionName: WebhookLambda
       Handler: index.handler
       Role: !GetAtt WebhookLambdaRole.Arn
       Runtime: python3.7
-      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1, arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB] 
   
+  InitialiseDatabase:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          def handler(event,context):
+            return {
+              'body': 'Hello there {0}'.format(event['requestContext']['identity']['sourceIp']),
+              'headers': {
+                'Content-Type': 'text/plain'
+              },
+              'statusCode': 200
+            }
+      Description: Creates and initialises tables within MySql database
+      Environment:
+        Variables:
+          endpoint : !GetAtt LifeDatabase.Endpoint.Address
+          username : !Ref DBUsername
+          password : !Ref DBPassword
+          database_name : !Ref DBName
+      FunctionName: InitialiseDatabaseLambda
+      Handler: index.handler
+      Role: !GetAtt WebhookLambdaRole.Arn
+      Runtime: python3.7
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:1]
+      VpcConfig:
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+  
+  UpdateDatabase:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          def handler(event,context):
+            return {
+              'body': 'Hello there {0}'.format(event['requestContext']['identity']['sourceIp']),
+              'headers': {
+                'Content-Type': 'text/plain'
+              },
+              'statusCode': 200
+            }
+      Description: Updates MySql database 
+      Environment:
+        Variables:
+          endpoint : !!GetAtt LifeDatabase.Endpoint.Address
+          username : !Ref DBUsername
+          password : !Ref DBPassword
+          database_name : !Ref DBName
+      FunctionName: UpdateDatabaseLambda
+      Handler: index.handler
+      Role: !GetAtt WebhookLambdaRole.Arn
+      Runtime: python3.7
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:1]
+      VpcConfig:
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+
   RequestLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -180,11 +217,11 @@ Resources:
               'statusCode': 200
             }
       Description: Makes a GET call to a public API
-      FunctionName: !Ref RequestLambdaFunctionName
+      FunctionName: RequestLambda
       Handler: index.handler
       Role: !GetAtt RequestLambdaRole.Arn
       Runtime: python3.7
-      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1, arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:1]
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB] 
