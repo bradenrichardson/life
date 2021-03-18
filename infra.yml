@@ -301,7 +301,7 @@ Resources:
     Type: AWS::EC2::Route
     Properties:
       RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/16
+      DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
   
   PrivateRouteTable:
