@@ -106,13 +106,13 @@ Resources:
   WebhookLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/${WebhookLambdaFunctionName}
+      LogGroupName: !Sub /aws/lambda/webhookfunction
       RetentionInDays: 90
   
   RequestLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub /aws/lambda/${RequestLambdaFunctionName}
+      LogGroupName: !Sub /aws/lambda/requestfunction
       RetentionInDays: 90
 
   ## Lambdas
@@ -190,7 +190,7 @@ Resources:
       Description: Updates MySql database 
       Environment:
         Variables:
-          endpoint : !!GetAtt LifeDatabase.Endpoint.Address
+          endpoint : !GetAtt LifeDatabase.Endpoint.Address
           username : !Ref DBUsername
           password : !Ref DBPassword
           database_name : !Ref DBName
