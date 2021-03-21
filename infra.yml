@@ -345,6 +345,9 @@ Resources:
   
   PublicRoute1:
     Type: AWS::EC2::Route
+    DependsOn:
+      - InternetGateway
+      - VPCGatewayAttachment
     Properties:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
@@ -452,7 +455,7 @@ Resources:
       MasterUsername: !Ref DBUsername
       MasterUserPassword: !Ref DBPassword
       DBSubnetGroupName: !Ref DBSubnetGroup
-      VpcSecurityGroups: [!Ref DatabaseSecurityGroup ]
+      VPCSecurityGroups: [ !GetAtt  DatabaseSecurityGroup.VpcId ]
 
     
   
