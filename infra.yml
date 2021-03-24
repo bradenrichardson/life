@@ -43,7 +43,7 @@ Parameters:
 
 Resources:
   ## IAM Roles
-  WebhookLambdaRole:
+  LambdaRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -73,35 +73,7 @@ Resources:
             Resource:
               - '*' 
 
-  RequestLambdaRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - lambda.amazonaws.com
-          Action:
-          - sts:AssumeRole
-      Policies:
-      - PolicyName: lambda
-        PolicyDocument:
-          Version: '2012-10-17'
-          Statement:
-          - Action:
-            - logs:CreateLogGroup
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            - ec2:DescribeNetworkInterfaces
-            - ec2:CreateNetworkInterface
-            - ec2:DeleteNetworkInterface
-            - ec2:DescribeInstances
-            - ec2:AttachNetworkInterface
-            Effect: Allow
-            Resource:
-              - '*'
+
   ## Log Groups
   WebhookLogGroup:
     Type: AWS::Logs::LogGroup
@@ -139,7 +111,7 @@ Resources:
       Description: Receives POST request via webhook
       FunctionName: WebhookLambda
       Handler: index.handler
-      Role: !GetAtt WebhookLambdaRole.Arn
+      Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
@@ -178,7 +150,7 @@ Resources:
           database_name : !Ref DBName
       FunctionName: InitialiseDatabaseLambda
       Handler: index.handler
-      Role: !GetAtt WebhookLambdaRole.Arn
+      Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:3]
       VpcConfig:
@@ -207,7 +179,7 @@ Resources:
           database_name : !Ref DBName
       FunctionName: UpdateDatabaseLambda
       Handler: index.handler
-      Role: !GetAtt WebhookLambdaRole.Arn
+      Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:1]
       VpcConfig:
@@ -230,7 +202,7 @@ Resources:
       Description: Makes a GET call to a public API
       FunctionName: RequestLambda
       Handler: index.handler
-      Role: !GetAtt RequestLambdaRole.Arn
+      Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
       VpcConfig:

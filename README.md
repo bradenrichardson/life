@@ -55,13 +55,18 @@ Design document: https://drive.google.com/file/d/1cpWIr5uYrzPKb2ywaftCqYkVY4dCIo
 - Codepipeline infra still setup with CF script from life-infra
 
 
-# Features
+# Retail Features
 - Provide monthly summaries (similar to UP) for any metric/dataset
+    - Mostly runs presets from large brands (google, spotify, apple, strava etc)
 - Display a web page with a default template
 - Ability to create and customize templates
 - Ability to be provisioned for multiple users
     - What infrastructure is shared?
+        - Probably all of the infrastructure apart from web/app sessions
     - How will sensitive data like API keys be handled?
+        - Need to investigate t&cs per preset
+        - Need to investigate most secure way to handle this
+        - Has anyone done it before?
     - Would this need to be user friendly or could they deploy their own cf script?
     - What about both? Free tier with open source code, you just have to use your own aws account etc
     - And then a paid tier for a managed service with a margin on top
@@ -70,6 +75,12 @@ Design document: https://drive.google.com/file/d/1cpWIr5uYrzPKb2ywaftCqYkVY4dCIo
 - Deploy to different regions
     - Both centralized deployment (IE Power User)
     - And client/server deployment (IE Managed User)
+
+# Corporate Features
+- In house analytics from any data source
+- Centralized database that outputs to a BI tool
+- End user can configure the dashboards in the BI tool
+- Custom presets are written for different data sources, or data types
 
 
 # Roadmap
