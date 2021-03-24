@@ -42,7 +42,8 @@ Parameters:
   
 
 Resources:
-  ## IAM Roles
+
+## IAM
   LambdaRole:
     Type: AWS::IAM::Role
     Properties:
@@ -73,8 +74,36 @@ Resources:
             Resource:
               - '*' 
 
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - codepipeline.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: codepipeline
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Action:
+            - lambda:*
+            - cloudwatch:*
+            - rds:*
+            - sqs:*
+            - ec2:*
+            - s3:*
+            - codebuild:*
+            Effect: Allow
+            Resource:
+              - '*'
 
-  ## Log Groups
+## LOG GROUP
   WebhookLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
@@ -87,7 +116,7 @@ Resources:
       LogGroupName: !Sub /aws/lambda/requestfunction
       RetentionInDays: 90
 
-  ## Lambdas
+## LAMBDA
   WebhookApiGatewayInvoke:
     Type: AWS::Lambda::Permission
     Properties:
@@ -207,9 +236,41 @@ Resources:
       Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:requests-python-layer:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
-        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB] 
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+  
+  CreateS3LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+        import boto3
+        import os 
 
-  # API Gateways  
+        configurationBucket = os.environ.get('Bucket')
+
+        s3template = {
+          key : value
+        }
+
+        client = boto3.client('s3')
+        response = client.put_object(
+          bucket=configurationBucket,
+          body=s3template
+        )
+      Description: Creates a template file in an s3 bucket
+      Environment:
+        Variables:
+          Bucket : !GetAtt ConfigurationSourceBucket.Arn
+      FunctionName: CreateObjectLambda
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.7
+      VpcConfig:
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+
+
+## API GATEWAY
   WebhookGateway:
     Type: AWS::ApiGateway::RestApi
     Properties:
@@ -241,7 +302,7 @@ Resources:
       RestApiId: !Ref WebhookGateway
       StageName: !Ref GatewayStageName
 
-  # Networking
+## NETWORKING
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     DependsOn: LifeDashboardVPC
@@ -415,6 +476,7 @@ Resources:
         - !Ref PrivateSubnetB
       DBSubnetGroupDescription: Subnet group for MySQL instance
 
+## DATABASE
   LifeDatabase:
     Type: AWS::RDS::DBInstance
     Properties:
@@ -429,9 +491,47 @@ Resources:
       DBSubnetGroupName: !Ref DBSubnetGroup
       VPCSecurityGroups: [ !GetAtt  DatabaseSecurityGroup.GroupId ]
 
-    
+## CODEPIPELINE
+  ConfigurationSourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ConfigurationSourceBucket
   
+  CustomS3Object:
+    Type: Custom::CustomResource
+    Properties:
+      ServiceToken: !GetAtt CreateS3LambdaFunction.Arn
+
+
+  PipelineArtifactStore:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: ${AWS::StackName}-PipelineArtifactStore
   
+  ConfigurationPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore: 
+        Location: !Ref PipelineArtifactStore
+        Type: S3
+      Name: ${AWS::StackName}-ConfigurationPipeline
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
+ 
+        # Stage 1: Get the source configuration file from CodeCommit
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              RunOrder: 1
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: S3
+                Version: 1
+              Configuration:
+                S3Bucket: !Ref ConfigurationSourceBucket
+  
+                
 
 
 
