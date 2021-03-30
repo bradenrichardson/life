@@ -238,36 +238,7 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
   
-  CreateS3LambdaFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      Code:
-        ZipFile: |
-        import boto3
-        import os 
-
-        configurationBucket = os.environ.get('Bucket')
-
-        s3template = {
-          key : value
-        }
-
-        client = boto3.client('s3')
-        response = client.put_object(
-          bucket=configurationBucket,
-          body=s3template
-        )
-      Description: Creates a template file in an s3 bucket
-      Environment:
-        Variables:
-          Bucket : !GetAtt ConfigurationSourceBucket.Arn
-      FunctionName: CreateObjectLambda
-      Handler: index.handler
-      Role: !GetAtt LambdaRole.Arn
-      Runtime: python3.7
-      VpcConfig:
-        SecurityGroupIds: [!Ref LambdaSecurityGroup]
-        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+  
 
 
 ## API GATEWAY
@@ -497,11 +468,41 @@ Resources:
     Properties:
       BucketName: ConfigurationSourceBucket
   
+  CreateS3LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+        import boto3
+        import os 
+
+        configurationBucket = os.environ.get('Bucket')
+
+        s3template = {
+          key : value
+        }
+
+        client = boto3.client('s3')
+        response = client.put_object(
+          bucket=configurationBucket,
+          body=s3template
+        )
+      Description: Creates a template file in an s3 bucket
+      Environment:
+        Variables:
+          Bucket : !GetAtt ConfigurationSourceBucket.Arn
+      FunctionName: CreateObjectLambda
+      Handler: index.handler
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: python3.7
+      VpcConfig:
+        SecurityGroupIds: [!Ref LambdaSecurityGroup]
+        SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
+
   CustomS3Object:
     Type: Custom::CustomResource
     Properties:
-      ServiceToken: !GetAtt CreateS3LambdaFunction.Arn
-
+      ServiceToken: !GetAtt CreateS3LambdaFunction.Arn 
 
   PipelineArtifactStore:
     Type: AWS::S3::Bucket
@@ -530,6 +531,8 @@ Resources:
                 Version: 1
               Configuration:
                 S3Bucket: !Ref ConfigurationSourceBucket
+
+
   
                 
 
