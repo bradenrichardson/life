@@ -478,6 +478,7 @@ Resources:
           import logging
           import boto3
           import os
+          import cfnresponse
 
           configurationBucket = os.environ.get('Bucket')
 
@@ -550,6 +551,8 @@ Resources:
 
           def handler(event, context):
               helper(event, context)
+              responseData = {'Message': 'Hello {}!'.format(event['ResourceProperties']['Name'])}
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, "CustomResourcePhysicalID")
       Description: Creates a template file in an s3 bucket
       Environment:
         Variables:
@@ -558,7 +561,7 @@ Resources:
       Handler: index.handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
-      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:crhelper:2]
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:crhelper:2, arn:aws:lambda:ap-southeast-2:007576465237:layer:cfnresponse:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
