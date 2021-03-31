@@ -466,27 +466,26 @@ Resources:
   ConfigurationSourceBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: ConfigurationSourceBucket
+      BucketName: configuration-source-bucket
   
   CreateS3LambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       Code:
         ZipFile: |
-        import boto3
-        import os 
+          import boto3
+          import os
 
-        configurationBucket = os.environ.get('Bucket')
-
-        s3template = {
-          key : value
-        }
-
-        client = boto3.client('s3')
-        response = client.put_object(
-          bucket=configurationBucket,
-          body=s3template
-        )
+          configurationBucket = os.environ.get('Bucket')
+          s3template = {
+            "key" : "value"
+          }
+          
+          client = boto3.client('s3')
+          response = client.put_object(
+            bucket=configurationBucket,
+            body=s3template
+          )
       Description: Creates a template file in an s3 bucket
       Environment:
         Variables:
@@ -506,20 +505,19 @@ Resources:
 
   PipelineArtifactStore:
     Type: AWS::S3::Bucket
-    Properties:
-      BucketName: ${AWS::StackName}-PipelineArtifactStore
   
   ConfigurationPipeline:
     Type: AWS::CodePipeline::Pipeline
+    DependsOn: CustomS3Object
     Properties:
       ArtifactStore: 
         Location: !Ref PipelineArtifactStore
         Type: S3
-      Name: ${AWS::StackName}-ConfigurationPipeline
+      Name: configuration-pipeline
       RoleArn: !GetAtt CodePipelineRole.Arn
       Stages:
  
-        # Stage 1: Get the source configuration file from CodeCommit
+        # Stage 1: Get the source configuration file from S3 bucket
         - Name: Source
           Actions:
             - Name: SourceAction
@@ -531,6 +529,22 @@ Resources:
                 Version: 1
               Configuration:
                 S3Bucket: !Ref ConfigurationSourceBucket
+        
+        # Stage 2: Initialise database with configuration details from S3 bucket
+        - Name: InitialiseDatabase
+          Actions:
+            - Name: InitialiseDatabaseAction
+              RunOrder: 2
+              ActionTypeId:
+                Category: Invoke
+                Owner: AWS
+                Provider: Lambda
+                Version: '1'
+              Configuration:
+                FunctionName: InitialiseDatabase
+              OutputArtifacts: []
+              InputArtifacts: []
+              Region: ap-southeast-2
 
 
   
