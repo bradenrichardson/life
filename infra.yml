@@ -512,7 +512,7 @@ Resources:
               response = client.put_object(
                 bucket=configurationBucket,
                 body=s3template,
-                key=config.yaml
+                key="config.yaml"
               )
 
               # To return an error to cloudformation you raise an exception:
