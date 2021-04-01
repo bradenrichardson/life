@@ -473,86 +473,46 @@ Resources:
     Properties:
       Code:
         ZipFile: |
-          from __future__ import print_function
-          from crhelper import CfnResource
-          import logging
-          import boto3
+          import json, boto3, logging
           import os
           import cfnresponse
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
 
           configurationBucket = os.environ.get('Bucket')
 
           s3template = {
-          "key" : "value"
+            "key" : "value"
           }
 
-          logger = logging.getLogger(__name__)
-          # Initialise the helper, all inputs are optional, this example shows the defaults
-          helper = CfnResource(json_logging=False, log_level='DEBUG', boto_level='CRITICAL', sleep_on_delete=120, ssl_verify=True)
-
-          try:
-              ## Init code goes here
-              pass
-          except Exception as e:
-              helper.init_failure(e)
-
-
-          @helper.create
-          def create(event, context):
-              logger.info("Got Create")
-              # Optionally return an ID that will be used for the resource PhysicalResourceId, 
-              # if None is returned an ID will be generated. If a poll_create function is defined 
-              # return value is placed into the poll event as event['CrHelperData']['PhysicalResourceId']
-              #
-              # To add response data update the helper.Data dict
-              # If poll is enabled data is placed into poll event as event['CrHelperData']
-              helper.Data.update({"test": "testdata"})
-
-              client = boto3.client('s3')
-              response = client.put_object(
-                bucket=configurationBucket,
-                body=s3template,
-                key="config.yaml"
-              )
-
-              # To return an error to cloudformation you raise an exception:
-              if not helper.Data.get("test"):
-                  raise ValueError("this error will show in the cloudformation events log and console.")
-              
-              return "MyResourceId"
-
-
-          @helper.update
-          def update(event, context):
-              logger.info("Got Update")
-              # If the update resulted in a new resource being created, return an id for the new resource. 
-              # CloudFormation will send a delete event with the old id when stack update completes
-
-
-          @helper.delete
-          def delete(event, context):
-              logger.info("Got Delete")
-              # Delete never returns anything. Should not fail if the underlying resources are already deleted.
-              # Desired state.
-              client = boto3.client('s3')
-              response = client.delete_object(
-                bucket=configurationBucket,
-                key=config.yaml
-              )
-
-
-          @helper.poll_create
-          def poll_create(event, context):
-              logger.info("Got create poll")
-              # Return a resource id or True to indicate that creation is complete. if True is returned an id 
-              # will be generated
-              return True
-
-
           def handler(event, context):
-              helper(event, context)
-              responseData = {'Message': 'Hello {}!'.format(event['ResourceProperties']['Name'])}
-              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData, "CustomResourcePhysicalID")
+            logger.info("event: {}".format(event))
+            try:
+                logger.info("configurationBucket: {}, event['RequestType']: {}".format(configurationBucket,event['RequestType']))
+                if event['RequestType'] == 'Create':
+                  client = boto3.client('s3')
+                  response = client.put_object(
+                    Bucket=configurationBucket,
+                    Body=s3template,
+                    Key="config.yaml"
+                  )
+
+                if event['RequestType'] == 'Delete':
+                  # s3 = boto3.resource('s3')
+                  # bucket = s3.Bucket(configurationBucket)
+                  # for obj in bucket.objects.filter():
+                  #     logger.info("delete obj: {}".format(obj))
+                  #     s3.Object(bucket.name, obj.key).delete()
+
+                sendResponseCfn(event, context, cfnresponse.SUCCESS)
+            except Exception as e:
+                logger.info("Exception: {}".format(e))
+                sendResponseCfn(event, context, cfnresponse.FAILED)
+
+          def sendResponseCfn(event, context, responseStatus):
+            responseData = {}
+            responseData['Data'] = {}
+            cfnresponse.send(event, context, responseStatus, responseData, "CustomResourcePhysicalID")
       Description: Creates a template file in an s3 bucket
       Environment:
         Variables:
@@ -561,7 +521,7 @@ Resources:
       Handler: index.handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
-      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:crhelper:2, arn:aws:lambda:ap-southeast-2:007576465237:layer:cfnresponse:1]
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:cfnresponse:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]

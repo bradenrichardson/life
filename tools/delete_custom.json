@@ -1,0 +1,7 @@
+{ 
+    "Status" : "SUCCESS",
+    "PhysicalResourceId" : "CustomResourcePhysicalID",
+    "StackId" : "arn:aws:cloudformation:ap-southeast-2:007576465237:stack/custom-lambda-test/39c4e600-92a0-11eb-9077-067976e71026",
+    "RequestId" : "93c12d71-14d5-4d78-a2cc-dd0bd3e393c7",
+    "LogicalResourceId" : "CustomS3Object"
+}
