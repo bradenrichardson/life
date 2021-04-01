@@ -516,7 +516,7 @@ Resources:
       Description: Creates a template file in an s3 bucket
       Environment:
         Variables:
-          Bucket : !GetAtt ConfigurationSourceBucket.Arn
+          Bucket : !Ref ConfigurationSourceBucket
       FunctionName: CreateObjectLambda
       Handler: index.handler
       Role: !GetAtt LambdaRole.Arn
