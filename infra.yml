@@ -493,7 +493,7 @@ Resources:
                   client = boto3.client('s3')
                   response = client.put_object(
                     Bucket=configurationBucket,
-                    Body=s3template,
+                    Body=bytes(s3template),
                     Key="config.yaml"
                   )
 
@@ -526,10 +526,10 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
 
-  CustomS3Object:
-    Type: Custom::CustomResource
-    Properties:
-      ServiceToken: !GetAtt CreateS3LambdaFunction.Arn 
+  # CustomS3Object:
+  #   Type: Custom::CustomResource
+  #   Properties:
+  #     ServiceToken: !GetAtt CreateS3LambdaFunction.Arn 
 
   PipelineArtifactStore:
     Type: AWS::S3::Bucket
