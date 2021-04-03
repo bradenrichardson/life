@@ -70,6 +70,11 @@ Resources:
             - ec2:DeleteNetworkInterface
             - ec2:DescribeInstances
             - ec2:AttachNetworkInterface
+            - s3:PutObject
+            - s3:PutObjectAcl
+            - s3:GetObject
+            - s3:GetObjectAcl
+            - s3:DeleteObject
             Effect: Allow
             Resource:
               - '*' 
@@ -489,30 +494,34 @@ Resources:
             logger.info("event: {}".format(event))
             try:
                 logger.info("configurationBucket: {}, event['RequestType']: {}".format(configurationBucket,event['RequestType']))
+                
                 if event['RequestType'] == 'Create':
+                  logger.info('Created!')
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
                   client = boto3.client('s3')
                   response = client.put_object(
-                    Bucket=configurationBucket,
-                    Body=bytes(s3template),
-                    Key="config.yaml"
+                      Bucket=configurationBucket,
+                      Body=json.dumps(s3template),
+                      Key="config.yml"
                   )
 
                 if event['RequestType'] == 'Delete':
-                  s3 = boto3.resource('s3')
-                  bucket = s3.Bucket(configurationBucket)
-                  for obj in bucket.objects.filter():
-                      logger.info("delete obj: {}".format(obj))
-                      s3.Object(bucket.name, obj.key).delete()
+                  logger.info('Deleted!')
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  client = boto3.client('s3')
+                  response = client.delete_object(
+                    Bucket=configurationBucket,
+                    Key="config.yml"
+                  )
 
-                sendResponseCfn(event, context, cfnresponse.SUCCESS)
+                
+                raise Exception
+                  logger.info('Exception')
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              
             except Exception as e:
                 logger.info("Exception: {}".format(e))
-                sendResponseCfn(event, context, cfnresponse.FAILED)
-
-          def sendResponseCfn(event, context, responseStatus):
-            responseData = {}
-            responseData['Data'] = {}
-            cfnresponse.send(event, context, responseStatus, responseData, "CustomResourcePhysicalID")
+                cfnresponse.send(event, context, cfnresponse.FAILURE)
       Description: Creates a template file in an s3 bucket
       Environment:
         Variables:
@@ -526,53 +535,53 @@ Resources:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
 
-  # CustomS3Object:
-  #   Type: Custom::CustomResource
-  #   Properties:
-  #     ServiceToken: !GetAtt CreateS3LambdaFunction.Arn 
+  CustomS3Object:
+    Type: Custom::CustomResource
+    Properties:
+      ServiceToken: !GetAtt CreateS3LambdaFunction.Arn 
 
   PipelineArtifactStore:
     Type: AWS::S3::Bucket
   
-  ConfigurationPipeline:
-    Type: AWS::CodePipeline::Pipeline
-    DependsOn: CustomS3Object
-    Properties:
-      ArtifactStore: 
-        Location: !Ref PipelineArtifactStore
-        Type: S3
-      Name: configuration-pipeline
-      RoleArn: !GetAtt CodePipelineRole.Arn
-      Stages:
+  # ConfigurationPipeline:
+  #   Type: AWS::CodePipeline::Pipeline
+  #   # DependsOn: CustomS3Object
+  #   Properties:
+  #     ArtifactStore: 
+  #       Location: !Ref PipelineArtifactStore
+  #       Type: S3
+  #     Name: configuration-pipeline
+  #     RoleArn: !GetAtt CodePipelineRole.Arn
+  #     Stages:
  
-        # Stage 1: Get the source configuration file from S3 bucket
-        - Name: Source
-          Actions:
-            - Name: SourceAction
-              RunOrder: 1
-              ActionTypeId:
-                Category: Source
-                Owner: AWS
-                Provider: S3
-                Version: 1
-              Configuration:
-                S3Bucket: !Ref ConfigurationSourceBucket
+  #       # Stage 1: Get the source configuration file from S3 bucket
+  #       - Name: Source
+  #         Actions:
+  #           - Name: SourceAction
+  #             RunOrder: 1
+  #             ActionTypeId:
+  #               Category: Source
+  #               Owner: AWS
+  #               Provider: S3
+  #               Version: 1
+  #             Configuration:
+  #               S3Bucket: !Ref ConfigurationSourceBucket
         
-        # Stage 2: Initialise database with configuration details from S3 bucket
-        - Name: InitialiseDatabase
-          Actions:
-            - Name: InitialiseDatabaseAction
-              RunOrder: 2
-              ActionTypeId:
-                Category: Invoke
-                Owner: AWS
-                Provider: Lambda
-                Version: '1'
-              Configuration:
-                FunctionName: InitialiseDatabase
-              OutputArtifacts: []
-              InputArtifacts: []
-              Region: ap-southeast-2
+  #       # Stage 2: Initialise database with configuration details from S3 bucket
+  #       - Name: InitialiseDatabase
+  #         Actions:
+  #           - Name: InitialiseDatabaseAction
+  #             RunOrder: 2
+  #             ActionTypeId:
+  #               Category: Invoke
+  #               Owner: AWS
+  #               Provider: Lambda
+  #               Version: '1'
+  #             Configuration:
+  #               FunctionName: InitialiseDatabase
+  #             OutputArtifacts: []
+  #             InputArtifacts: []
+  #             Region: ap-southeast-2
 
 
   
