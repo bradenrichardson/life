@@ -513,15 +513,10 @@ Resources:
                     Bucket=configurationBucket,
                     Key="config.yml"
                   )
-
-                
-                raise Exception
-                  logger.info('Exception')
-                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
               
             except Exception as e:
-                logger.info("Exception: {}".format(e))
-                cfnresponse.send(event, context, cfnresponse.FAILURE)
+              logger.info("Exception: {}".format(e))
+              cfnresponse.send(event, context, cfnresponse.FAILURE)
       Description: Creates a template file in an s3 bucket
       Environment:
         Variables:
