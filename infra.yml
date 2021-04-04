@@ -75,6 +75,8 @@ Resources:
             - s3:GetObject
             - s3:GetObjectAcl
             - s3:DeleteObject
+            - codepipeline:PutJobSuccessResult
+            - codepipeline:PutJobFailureResult
             Effect: Allow
             Resource:
               - '*' 
@@ -160,6 +162,7 @@ Resources:
           import os
           import pymysql
           import sys
+          import boto3
           endpoint  = os.environ.get('endpoint')
           username = os.environ.get('username')
           password = os.environ.get('password')
@@ -174,7 +177,13 @@ Resources:
                   cursor.execute('CREATE TABLE Fitness(ActivityID int, MovingTime decimal, ElapsedTime decimal, TotalElevation decimal, Type linestring, MaxSpeed decimal, Distance decimal, Name linestring)')
                   connection.commit()
           def handler(event, context):
+              pipeline = boto3.client('codepipeline')
+              response = pipeline.put_job_success_result(
+                jobId=event['CodePipeline.job']['id']
+              )
               initialise_database()
+              return response 
+
       Description: Creates and initialises tables within MySql database
       Environment:
         Variables:
@@ -472,6 +481,8 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: configuration-source-bucket
+      VersioningConfiguration:
+        Status: Enabled
   
   CreateS3LambdaFunction:
     Type: AWS::Lambda::Function
@@ -516,7 +527,7 @@ Resources:
               
             except Exception as e:
               logger.info("Exception: {}".format(e))
-              cfnresponse.send(event, context, cfnresponse.FAILURE)
+              cfnresponse.send(event, context, cfnresponse.FAILED)
       Description: Creates a template file in an s3 bucket
       Environment:
         Variables:
@@ -532,51 +543,56 @@ Resources:
 
   CustomS3Object:
     Type: Custom::CustomResource
+    DependsOn: CreateS3LambdaFunction
     Properties:
       ServiceToken: !GetAtt CreateS3LambdaFunction.Arn 
 
   PipelineArtifactStore:
     Type: AWS::S3::Bucket
   
-  # ConfigurationPipeline:
-  #   Type: AWS::CodePipeline::Pipeline
-  #   # DependsOn: CustomS3Object
-  #   Properties:
-  #     ArtifactStore: 
-  #       Location: !Ref PipelineArtifactStore
-  #       Type: S3
-  #     Name: configuration-pipeline
-  #     RoleArn: !GetAtt CodePipelineRole.Arn
-  #     Stages:
+  ConfigurationPipeline:
+    Type: AWS::CodePipeline::Pipeline
+    # DependsOn: CustomS3Object
+    Properties:
+      ArtifactStore: 
+        Location: !Ref PipelineArtifactStore
+        Type: S3
+      Name: configuration-pipeline
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      Stages:
  
-  #       # Stage 1: Get the source configuration file from S3 bucket
-  #       - Name: Source
-  #         Actions:
-  #           - Name: SourceAction
-  #             RunOrder: 1
-  #             ActionTypeId:
-  #               Category: Source
-  #               Owner: AWS
-  #               Provider: S3
-  #               Version: 1
-  #             Configuration:
-  #               S3Bucket: !Ref ConfigurationSourceBucket
+        # Stage 1: Get the source configuration file from S3 bucket
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              RunOrder: 1
+              ActionTypeId:
+                Category: Source
+                Owner: AWS
+                Provider: S3
+                Version: 1
+              Configuration:
+                S3Bucket: !Ref ConfigurationSourceBucket
+                S3ObjectKey: "config.yml"
+              OutputArtifacts:
+                - Name: SourceCode
         
-  #       # Stage 2: Initialise database with configuration details from S3 bucket
-  #       - Name: InitialiseDatabase
-  #         Actions:
-  #           - Name: InitialiseDatabaseAction
-  #             RunOrder: 2
-  #             ActionTypeId:
-  #               Category: Invoke
-  #               Owner: AWS
-  #               Provider: Lambda
-  #               Version: '1'
-  #             Configuration:
-  #               FunctionName: InitialiseDatabase
-  #             OutputArtifacts: []
-  #             InputArtifacts: []
-  #             Region: ap-southeast-2
+        # Stage 2: Initialise database with configuration details from S3 bucket
+        - Name: InitialiseDatabase
+          Actions:
+            - Name: InitialiseDatabaseAction
+              RunOrder: 2
+              ActionTypeId:
+                Category: Invoke
+                Owner: AWS
+                Provider: Lambda
+                Version: '1'
+              Configuration:
+                FunctionName: InitialiseDatabaseLambda
+              OutputArtifacts: []
+              InputArtifacts: []
+              Region: ap-southeast-2
+        
 
 
   
