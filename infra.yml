@@ -541,6 +541,7 @@ Resources:
     Type: Custom::CustomResource
     DependsOn: 
     - S3CRUD
+    - NATGateway
     Properties:
       ServiceToken: !GetAtt S3CRUD.Arn
 
