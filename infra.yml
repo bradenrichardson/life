@@ -542,6 +542,7 @@ Resources:
     DependsOn: 
     - S3CRUD
     - NATGateway
+    - LifeDashboardVPC
     Properties:
       ServiceToken: !GetAtt S3CRUD.Arn
 
