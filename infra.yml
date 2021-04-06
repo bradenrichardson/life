@@ -543,6 +543,22 @@ Resources:
     - S3CRUD
     - NATGateway
     - LifeDashboardVPC
+    - PublicRoute1
+    - PrivateRoute1
+    - VPCGatewayAttachment
+    - PublicSubnetA
+    - PublicSubnetB
+    - PrivateSubnetA
+    - PrivateSubnetB
+    - InternetGateway
+    - PublicRouteTable
+    - PrivateRouteTable
+    - PublicSubnetARouteTableAssociation
+    - PublicSubnetBRouteTableAssociation
+    - PrivateSubnetARouteTableAssociation
+    - PrivateSubnetBRouteTableAssociation
+
+
     Properties:
       ServiceToken: !GetAtt S3CRUD.Arn
 
