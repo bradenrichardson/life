@@ -1,0 +1,31 @@
+DataSources:
+  DataSource1:
+    API:
+      ApiKey: xyz 
+      URL: up.com.au/v1/api
+      Request: True
+      Webhook: False
+    Database:
+      Name: Spotify
+      Columns:
+      - ID
+      - Name
+      - Artist
+      - Length
+      - Timestamp
+
+Dashboards:
+  Weekly:
+    Name: Weekly
+    Datasources:
+      Tables:
+      - Spotify
+      - UP
+  
+  Historical:
+    Name: Historical
+    Datasources:
+      Tables:
+      - Spotify
+      - UP
+

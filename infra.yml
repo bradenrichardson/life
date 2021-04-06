@@ -522,13 +522,13 @@ Resources:
               
             except Exception as e:
               logger.info("Exception: {}".format(e))
-              cfnresponse.send(event, context, cfnresponse.FAILED)
+              cfnresponse.send(event, context, cfnresponse.FAILED, {})
       Description: Creates a template file in an s3 bucket
       Environment:
         Variables:
           ConfigurationBucket : !Ref ConfigurationSourceBucket
           PipelineBucket: !Ref PipelineArtifactStore
-      FunctionName: CreateObjectLambda
+      FunctionName: S3CRUD
       Handler: index.handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
@@ -557,8 +557,6 @@ Resources:
     - PublicSubnetBRouteTableAssociation
     - PrivateSubnetARouteTableAssociation
     - PrivateSubnetBRouteTableAssociation
-
-
     Properties:
       ServiceToken: !GetAtt S3CRUD.Arn
 
