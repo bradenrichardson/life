@@ -489,13 +489,14 @@ Resources:
     Properties:
       Code:
         ZipFile: |
-          import json, boto3, logging
+          import yaml, boto3, logging
           import os
           import cfnresponse
           logger = logging.getLogger()
           logger.setLevel(logging.DEBUG)
 
-          configurationBucket = os.environ.get('Bucket')
+          configurationBucket = os.environ.get('ConfigurationBucket')
+          pipelineBucket = os.environ.get('PipelineBucket')
 
           s3template = {
             "key" : "value"
@@ -512,7 +513,7 @@ Resources:
                   client = boto3.client('s3')
                   response = client.put_object(
                       Bucket=configurationBucket,
-                      Body=json.dumps(s3template),
+                      Body=yaml.dump(s3template),
                       Key="config.yml"
                   )
 
@@ -532,7 +533,7 @@ Resources:
       Handler: index.handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
-      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:cfnresponse:1]
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:cfnresponse:1, arn:aws:lambda:ap-southeast-2:007576465237:layer:pyaml:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
