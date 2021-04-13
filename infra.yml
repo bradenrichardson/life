@@ -159,6 +159,7 @@ Resources:
           import pymysql
           import sys
           import boto3
+          import yaml
           endpoint  = os.environ.get('endpoint')
           username = os.environ.get('username')
           password = os.environ.get('password')
@@ -170,36 +171,43 @@ Resources:
               obj = s3.Object(bucket, key)
               
               config = obj.get()['Body'].read()
-              print(config)
+              yamlConfig = yaml.safe_load(config)
+              
+              return yamlConfig
 
           def initialise_database(config):
-              return config
+              dataSources = config.get('DataSources').keys()
+              
+              for datasource in dataSources:
+                  executionString = 'CREATE TABLE {}'.format(datasource)
+                  for key in config.get(datasource):
+                      print(key)
+              
+              
+              # return config
               # try:
               #     connection = pymysql.connect(host=endpoint, user=username, passwd=password, db=database_name)
               # except pymysql.MySQLError as e:
               #     print(e)
               # print('establishing database connection')
               # with connection.cursor() as cursor:
-              #     cursor.execute('CREATE TABLE Fitness(ActivityID int, MovingTime decimal, ElapsedTime decimal, TotalElevation decimal, Type linestring, MaxSpeed decimal, Distance decimal, Name linestring)')
+              #     cursor.execute(executionString)
               #     connection.commit()
                   
           def handler(event, context):
               print(event)
               
-              # pipeline = boto3.client('codepipeline')
-              # response = pipeline.put_job_success_result(
-              #   jobId=event['CodePipeline.job']['id']
-              # )
+              pipeline = boto3.client('codepipeline')
+              response = pipeline.put_job_success_result(
+                jobId=event['CodePipeline.job']['id']
+              )
               
               inputArtifacts = event.get('CodePipeline.job').get('data').get('inputArtifacts')
               bucketName = inputArtifacts[0]['location'].get('s3Location').get('bucketName')
               objectKey = inputArtifacts[0]['location'].get('s3Location').get('objectKey')
               
-              get_object(bucketName, objectKey)
-              
-              # initialise_database(get_object(objectBucket, objectKey))
+              initialise_database(get_object(bucketName, objectKey))
               # return response 
-
       Description: Creates and initialises tables within MySql database
       Environment:
         Variables:
@@ -211,7 +219,7 @@ Resources:
       Handler: index.handler
       Role: !GetAtt LambdaRole.Arn
       Runtime: python3.7
-      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:3]
+      Layers: [arn:aws:lambda:ap-southeast-2:007576465237:layer:pymysql:3, arn:aws:lambda:ap-southeast-2:007576465237:layer:pyaml:1]
       VpcConfig:
         SecurityGroupIds: [!Ref LambdaSecurityGroup]
         SubnetIds: [!Ref PrivateSubnetA, !Ref PrivateSubnetB]
