@@ -70,11 +70,7 @@ Resources:
             - ec2:DeleteNetworkInterface
             - ec2:DescribeInstances
             - ec2:AttachNetworkInterface
-            - s3:PutObject
-            - s3:PutObjectAcl
-            - s3:GetObject
-            - s3:GetObjectAcl
-            - s3:DeleteObject
+            - s3:*
             - codepipeline:PutJobSuccessResult
             - codepipeline:PutJobFailureResult
             Effect: Allow
@@ -520,6 +516,15 @@ Resources:
                 if event['RequestType'] == 'Delete':
                   logger.info('Deleted!')
                   cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+                  
+                  s3 = boto3.resource('s3')
+
+                  configBucket = s3.Bucket(configurationBucket)
+                  pipeBucket = s3.Bucket(pipelineBucket)
+                  
+                  configBucket.object_versions.all().delete()
+                  pipelineBucket.object_versions.all().delete()
+                  pipeBucket.objects.all().delete()
               
             except Exception as e:
               logger.info("Exception: {}".format(e))
