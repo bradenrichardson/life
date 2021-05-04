@@ -591,6 +591,8 @@ Resources:
     - PublicSubnetBRouteTableAssociation
     - PrivateSubnetARouteTableAssociation
     - PrivateSubnetBRouteTableAssociation
+    - PipelineArtifactStore
+    - ConfigurationSourceBucket
     Properties:
       ServiceToken: !GetAtt S3CRUD.Arn
 
