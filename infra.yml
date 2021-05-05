@@ -165,34 +165,48 @@ Resources:
           password = os.environ.get('password')
           database_name = os.environ.get('database_name')
 
+          createFinanceTable = 'CREATE TABLE Finances(TransactionID linestring, Description linestring, Value decimal, Category linestring, ParentCategory linestring, CreatedAt datetime, SettledAt datetime)'
+
+
+          def check_table_exists(tablename):
+              try:
+                  connection = pymysql.connect(host=endpoint, user=username, passwd=password, db=database_name)
+              except pymysql.MySQLError as e:
+                  print(e)
+              
+              with connection.cursor() as cursor:
+                  cursor.execute("""
+                      SELECT COUNT(*)
+                      FROM information_schema.tables
+                      WHERE table_name = '{0}'
+                      """.format(tablename.replace('\'', '\'\'')))
+                  if cursor.fetchone()[0] == 1:
+                      cursor.close()
+                      return True
+                  
+                  cursor.close()
+                  return False
+
 
           def get_object(bucket, key):
               s3 = boto3.resource('s3')
               obj = s3.Object(bucket, key)
-              
               config = obj.get()['Body'].read()
               yamlConfig = yaml.safe_load(config)
-              
               return yamlConfig
 
           def initialise_database(config):
               dataSources = config.get('DataSources').keys()
               
-              for datasource in dataSources:
-                  executionString = 'CREATE TABLE {}'.format(datasource)
-                  for key in config.get(datasource):
-                      print(key)
-              
-              
-              # return config
-              # try:
-              #     connection = pymysql.connect(host=endpoint, user=username, passwd=password, db=database_name)
-              # except pymysql.MySQLError as e:
-              #     print(e)
-              # print('establishing database connection')
-              # with connection.cursor() as cursor:
-              #     cursor.execute(executionString)
-              #     connection.commit()
+              try:
+                  connection = pymysql.connect(host=endpoint, user=username, passwd=password, db=database_name)
+              except pymysql.MySQLError as e:
+                  print(e)
+              print('establishing database connection')
+              with connection.cursor() as cursor:
+                  if 'Up' in dataSources and check_table_exists('Up'):
+                      cursor.execute(createFinanceTable)
+                      connection.commit()
                   
           def handler(event, context):
               print(event)

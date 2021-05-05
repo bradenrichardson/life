@@ -8,7 +8,7 @@ DataSources:
       Historical: False
     Database:
       Type: Spotify
-  UP:
+  Up:
     API:
       ApiKey: xyz 
       URL: up.com/api
