@@ -565,6 +565,7 @@ Resources:
                   pipeBucket = s3.Bucket(pipelineBucket)
                   
                   configBucket.object_versions.all().delete()
+                  configBucket.objects.all().delete()
                   pipeBucket.object_versions.all().delete()
                   pipeBucket.objects.all().delete()
               
