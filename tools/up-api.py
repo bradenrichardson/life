@@ -137,10 +137,12 @@ def create_csv():
                 continue
             if 'Round Up' in transaction.get('attributes').get('description'):
                 continue
+            if float(transaction.get('attributes').get('amount').get('value')) > 0:
+                continue
             else:
                 csvDictionary['id'].append(transaction.get('id'))
                 csvDictionary['description'].append(transaction.get('attributes').get('description'))
-                csvDictionary['value'].append(transaction.get('attributes').get('amount').get('value'))
+                csvDictionary['value'].append(transaction.get('attributes').get('amount').get('value')[1:])
                 if transaction.get('relationships').get('category').get('data'):
                     csvDictionary['category'].append(transaction.get('relationships').get('category').get('data').get('id'))
                 else:
@@ -153,7 +155,7 @@ def create_csv():
                 csvDictionary['account'].append(accounts.get(transaction.get('relationships').get('account').get('data').get('id')))
 
     try:
-        with open("csv_file.csv", 'w', encoding='utf-8') as csvfile:
+        with open("csv_file.csv", 'w', encoding='utf-8', newline="") as csvfile:
             writer = csv.writer(csvfile, delimiter = ",")
             writer.writerow(csvDictionary.keys())
             writer.writerows(zip(*csvDictionary.values()))
