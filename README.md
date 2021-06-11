@@ -1,6 +1,18 @@
 # Life Dashboard
 A dashboard to display useful analytics about your life
 
+# Finance Dashboard Branch
+This is a lightweight version aimed at a quicker release.
+- Will utilise Amazon integration with an Aurora MySQL instance
+- No pre-generated dashboards, instead aiming to integrate with Tableau
+- UP bank is the only financial data source currently scoped
+
+Because of this the cost of running is significantly reduced by running a webhook only client, not requiring the NAT gateway for requests. Costs are slightly increased with the aurora instance, but in large should be a cheaper deployment for someone looking to just track their financial data in Tableau.
+
+No plan for a pipeline with this deployment.
+
+
+
 # Database design
 The following data sources are included in the database design:
 - Up Banking
