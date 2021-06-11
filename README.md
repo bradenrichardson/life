@@ -3,7 +3,8 @@ A dashboard to display useful analytics about your life
 
 # Finance Dashboard Branch
 This is a lightweight version aimed at a quicker release.
-- Will utilise Amazon integration with an Aurora MySQL instance
+- Will utilise Amazon Athena integration, to read data from S3 buckets
+- Webhook lambda will update a file in an s3 bucket
 - No pre-generated dashboards, instead aiming to integrate with Tableau
 - UP bank is the only financial data source currently scoped
 
