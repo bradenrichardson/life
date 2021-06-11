@@ -122,7 +122,7 @@ def create_csv():
     api_url = api_url_base + 'transactions'
     accounts = list_accounts()
     data = create_list(api_url)
-    csvDictionary = {'id' : [], 'description' : [], 'value' : [], 'category' : [], 'parentCategory' : [], 'createdAt' : [], 'account' : []}
+    csvDictionary = {'id' : [], 'description' : [], 'value' : [], 'category' : [], 'parentCategory' : [], 'createdAt' : []}
 
 
     for array in data:
@@ -151,7 +151,7 @@ def create_csv():
                     csvDictionary['parentCategory'].append(transaction.get('relationships').get('parentCategory').get('data').get('id'))
                 else:
                     csvDictionary['parentCategory'].append('Uncategorized')
-                csvDictionary['createdAt'].append(transaction.get('attributes').get('createdAt'))
+                csvDictionary['createdAt'].append(transaction.get('attributes').get('createdAt')[:10])
                 csvDictionary['account'].append(accounts.get(transaction.get('relationships').get('account').get('data').get('id')))
 
     try:
