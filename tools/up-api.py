@@ -152,7 +152,6 @@ def create_csv():
                 else:
                     csvDictionary['parentCategory'].append('Uncategorized')
                 csvDictionary['createdAt'].append(transaction.get('attributes').get('createdAt')[:10])
-                csvDictionary['account'].append(accounts.get(transaction.get('relationships').get('account').get('data').get('id')))
 
     try:
         with open("csv_file.csv", 'w', encoding='utf-8', newline="") as csvfile:
